@@ -64,6 +64,8 @@ Event = namedtuple(
 )
 
 # Paths for room SOFA files
+
+from scripts import prepare_rirs
 __SPATIAL_SCAPER_RIRS_DIR__ = "spatialscaper_RIRs"
 __PATH_TO_AMBIENT_NOISE_FILES__ = os.path.join("source_data", "TAU-SNoise_DB")
 __ROOM_RIR_FILE__ = {
@@ -78,8 +80,10 @@ __ROOM_RIR_FILE__ = {
     "se203": "se203_{fmt}.sofa",
     "tb103": "tb103_{fmt}.sofa",
     "tc352": "tc352_{fmt}.sofa",
+    "motusroom": "motusroom_{fmt}.sofa"
 }
 
+#### FIX motusroom name if needed 
 
 class Scaper:
     def __init__(
