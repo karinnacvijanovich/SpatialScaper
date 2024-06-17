@@ -138,6 +138,7 @@ def prepare_metu(dataset_path):
 def prepare_motus(dataset_path):
     motuspath = Path(dataset_path) / "source_data" / "raw_rirs"
     XYZs = os.listdir(motuspath)
+
     source_positions = {
         '1': np.array([[3.462, 2.075, 1.448]]),
         '2': np.array([[1.747, 3.738, 1.448]]),
@@ -145,7 +146,7 @@ def prepare_motus(dataset_path):
         '4': np.array([[3.881, 3.437, 1.448]])
     }
     mic_pos = np.array([[1.825, 2.075, 1.448]])
-    aud_fmt = "em32" 
+    aud_fmt = "em32"
 
     IRs = []
     xyzs = []
@@ -155,11 +156,17 @@ def prepare_motus(dataset_path):
         xyzs.append(source_pos)
         wavfile = motuspath / file_name
         x, sr = sf.read(wavfile)
+        x = x[:, __TETRA_CHANS_IN_EM32__]
         IRs.append(x)
 
-    filepath = Path(dataset_path) / "spatialscaper_RIRs" / f"motusroom_{aud_fmt}.sofa"
     rirs = np.array(IRs)
-    source_pos = np.array(xyzs)
+
+    # Reshape source_pos to have shape (num_measurements, 3) as required in sofa_utils
+    source_pos = np.array(xyzs).reshape(len(xyzs), 3)
+
+    filepath = Path(dataset_path) / "spatialscaper_RIRs" / f"motusroom_{aud_fmt}.sofa"
+
+    #print("Reached the point of creating the SOFA file.")
     sofa_utils.create_srir_sofa(
         filepath,
         rirs,
@@ -170,6 +177,7 @@ def prepare_motus(dataset_path):
         listener_name=aud_fmt,
         sr=sr,
     )
+    print("done!")
 
 ##################################
 
@@ -315,33 +323,58 @@ def prepare_arni(path_raw, path_sofa, formats=["mic", "foa"]):
         print(f"Finished .sofa creation for {aud_fmt} format.")
 
 
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         description="Download and prepare METU SPARG dataset."
+#     )
+#     parser.add_argument(
+#         "--path",
+#         default="datasets/rir_datasets",
+#         help="Path to store and process the dataset.",
+#     )
+#     args = parser.parse_args()
+
+#     os.makedirs(Path(args.path) / "source_data", exist_ok=True)
+#     os.makedirs(Path(args.path) / "spatialscaper_RIRs", exist_ok=True)
+
+#     ## METU
+#     download_and_extract(METU_URL, Path(args.path) / "source_data")
+#     prepare_metu(Path(args.path))
+
+#     ## TAU
+#     dest_path = Path(args.path) / "source_data"
+#     download_tau(dest_path)
+#     dest_path_sofa = Path(args.path) / "spatialscaper_RIRs"
+#     prepare_tau(dest_path, dest_path_sofa)
+
+#     # ARNI
+#     dest_path = Path(args.path) / "source_data"
+#     download_and_extract(ARNI_URL_MIC, Path(args.path) / "source_data")
+#     download_and_extract(ARNI_URL_FOA, Path(args.path) / "source_data")
+#     dest_path_sofa = Path(args.path) / "spatialscaper_RIRs"
+#     prepare_arni(dest_path, dest_path_sofa)
+
+
+'''
+Commenting out the above for now so I can just test the prepare_motus method 
+'''
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Download and prepare METU SPARG dataset."
+        description="Prepare MOTUS room dataset."
     )
     parser.add_argument(
         "--path",
         default="datasets/rir_datasets",
         help="Path to store and process the dataset.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args()  
 
     os.makedirs(Path(args.path) / "source_data", exist_ok=True)
     os.makedirs(Path(args.path) / "spatialscaper_RIRs", exist_ok=True)
 
-    ## METU
-    download_and_extract(METU_URL, Path(args.path) / "source_data")
-    prepare_metu(Path(args.path))
+    # Call the prepare_motus function
+    prepare_motus(Path(args.path))
 
-    ## TAU
-    dest_path = Path(args.path) / "source_data"
-    download_tau(dest_path)
-    dest_path_sofa = Path(args.path) / "spatialscaper_RIRs"
-    prepare_tau(dest_path, dest_path_sofa)
 
-    # ARNI
-    dest_path = Path(args.path) / "source_data"
-    download_and_extract(ARNI_URL_MIC, Path(args.path) / "source_data")
-    download_and_extract(ARNI_URL_FOA, Path(args.path) / "source_data")
-    dest_path_sofa = Path(args.path) / "spatialscaper_RIRs"
-    prepare_arni(dest_path, dest_path_sofa)
+
