@@ -133,6 +133,47 @@ def prepare_metu(dataset_path):
         sr=sr,
     )
 
+#################################
+
+def prepare_motus(dataset_path):
+    motuspath = Path(dataset_path) / "source_data" / "raw_rirs"
+    XYZs = os.listdir(motuspath)
+    source_positions = {
+        '1': np.array([[3.462, 2.075, 1.448]]),
+        '2': np.array([[1.747, 3.738, 1.448]]),
+        '3': np.array([[2.483, 3.295, 1.448]]),
+        '4': np.array([[3.881, 3.437, 1.448]])
+    }
+    mic_pos = np.array([[1.825, 2.075, 1.448]])
+    aud_fmt = "em32" 
+
+    IRs = []
+    xyzs = []
+    for file_name in XYZs:
+        source_pos_index = file_name.split("_")[1]
+        source_pos = source_positions[source_pos_index]
+        xyzs.append(source_pos)
+        wavfile = motuspath / file_name
+        x, sr = sf.read(wavfile)
+        IRs.append(x)
+
+    filepath = Path(dataset_path) / "spatialscaper_RIRs" / f"motusroom_{aud_fmt}.sofa"
+    rirs = np.array(IRs)
+    source_pos = np.array(xyzs)
+    sofa_utils.create_srir_sofa(
+        filepath,
+        rirs,
+        source_pos,
+        mic_pos,
+        db_name="MOTUS",
+        room_name="motusroom",
+        listener_name=aud_fmt,
+        sr=sr,
+    )
+
+##################################
+
+
 
 def download_tau(dest_path):
     # Download combine and extract zip files
