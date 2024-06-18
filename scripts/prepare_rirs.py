@@ -11,7 +11,7 @@ import soundfile as sf
 from pathlib import Path
 import pysofaconventions as pysofa
 
-from utils import download_file, extract_zip, combine_multizip
+from .utils import download_file, extract_zip, combine_multizip
 from spatialscaper import sofa_utils, tau_utils
 
 FS = 24000
@@ -146,7 +146,9 @@ def prepare_motus(dataset_path):
         '4': np.array([[3.881, 3.437, 1.448]])
     }
     mic_pos = np.array([[1.825, 2.075, 1.448]])
-    aud_fmt = "em32"
+    aud_fmt = "mic"
+    #if motuspath is sh_rirs --> foa 
+    #if motuspath is raw_rirs --> mic 
 
     IRs = []
     xyzs = []
