@@ -48,7 +48,7 @@ ARNI_DB_NAME = "ARNI-SRIR-DB-SOFA"
 MOTUS_DB_NAME = "MOTUS" 
 
 __TETRA_CHANS_IN_EM32__ = [5, 9, 25, 21]
-__FIRST_FOUR_FOR_FOA__ = [0, 1, 2, 3] 
+__FOA_ACN_CHANS__ = [0, 1, 2, 3] 
 
 
 def create_single_sofa_file(aud_fmt, tau_db_dir, sofa_db_dir, db_name):
@@ -146,18 +146,9 @@ def prepare_metu(dataset_path, dest_path_sofa):
         sr=sr,
     )
 
-def prepare_motus(dataset_path, dest_path_sofa):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(os.path.dirname(script_dir))
-    motuspath = Path(dataset_path) / "sh_rirs" #or replace with "raw_rirs" for mic 
-    if "sh_rirs" in str(motuspath):
-        aud_fmt = "foa"
-    elif "raw_rirs" in str(motuspath):
-        aud_fmt = "mic"
-    else:
-        raise ValueError("Invalid motuspath.")
-    XYZs = os.listdir(motuspath)
-    
+def prepare_motus(dataset_path, dest_path_sofa, audio_fmts = ["foa","mic"]):
+    # script_dir = os.path.dirname(os.path.abspath(__file__))
+    # os.chdir(os.path.dirname(script_dir))
     source_positions = {
         '1': np.array([[1.637, 0.0, 0.0]]),
         '2': np.array([[-0.078, 1.663, 0.0]]),
@@ -166,34 +157,40 @@ def prepare_motus(dataset_path, dest_path_sofa):
     }
     mic_pos = np.array([[0.0, 0.0, 0.0]])
     
-    IRs, xyzs = [], []
-    for file_name in XYZs:
-        source_pos_index = file_name.split("_")[1]
-        source_pos = source_positions[source_pos_index]
-        xyzs.append(source_pos)
-        wavfile = motuspath / file_name
-        x, sr = sf.read(wavfile)
-        if aud_fmt == "foa": 
-            x = x[:, __FIRST_FOUR_FOR_FOA__] 
-        else:
-            x = x[:, __TETRA_CHANS_IN_EM32__]   
-        IRs.append(x)
-    rirs = np.array(IRs)
-    # Reshape source_pos to have shape (num_measurements, 3) as required in sofa_utils
-    # (M,C) aka... (num measurements, num coordinates)
-    source_pos = np.array(xyzs).reshape(len(xyzs), 3)
-    filepath = dest_path_sofa / f"motusroom_{aud_fmt}.sofa"
-    #print("Reached the point of creating the SOFA file.")
-    sofa_utils.create_srir_sofa(
-        filepath,
-        rirs,
-        source_pos,
-        mic_pos,
-        db_name= MOTUS_DB_NAME, 
-        room_name="motus_room",
-        listener_name=aud_fmt,
-        sr=sr,
-    )
+    for fmt in audio_fmts: 
+        if fmt == "foa": 
+            motuspath = Path(dataset_path) / "sh_rirs"
+        elif fmt == "mic": 
+            motuspath = Path(dataset_path) / "raw_rirs"
+        RIR_file_names = os.listdir(motuspath)
+        IRs, xyzs = [], []
+        for filename in RIR_file_names:
+            source_pos_index = filename.split("_")[1]
+            source_pos = source_positions[source_pos_index] + random.uniform(-0.001, 0.001)
+            xyzs.append(source_pos)
+            wavfile = motuspath / filename
+            x, sr = sf.read(wavfile)
+            if aud_fmt == "foa": 
+                x = x[:, __FOA_ACN_CHANS__] 
+            else:
+                x = x[:, __TETRA_CHANS_IN_EM32__]   
+            IRs.append(x)
+        rirs = np.array(IRs)
+        # Reshape source_pos to have shape (num_measurements, 3) as required in sofa_utils
+        # (M,C) aka... (num measurements, num coordinates)
+        source_pos = np.array(xyzs).reshape(len(xyzs), 3)
+        filepath = dest_path_sofa / f"motusroom_{aud_fmt}.sofa"
+        #print("Reached the point of creating the SOFA file.")
+        sofa_utils.create_srir_sofa(
+            filepath,
+            rirs,
+            source_pos,
+            mic_pos,
+            db_name= MOTUS_DB_NAME, 
+            room_name="motus_room",
+            listener_name=aud_fmt,
+            sr=sr,
+        )
 
 def download_tau(dest_path):
     # Download combine and extract zip files
@@ -240,9 +237,9 @@ def center_and_translate_arni(receiver_pos, source_pos):
     y2, x2, z2 = source_pos[0], source_pos[1], source_pos[2]
     # compute translation of the source (loud speaker)
     # add small perturbation to have unique coordinate for trajectory generation purposes
-    translation_y = -y1 + random.uniform(-0.0001, 0.0001)
-    translation_x = -x1 + random.uniform(-0.0001, 0.0001)
-    translation_z = z1 + random.uniform(-0.0001, 0.0001)
+    translation_y = -y1 + random.uniform(-0.001, 0.001)
+    translation_x = -x1 + random.uniform(-0.001, 0.001)
+    translation_z = z1 + random.uniform(-0.001, 0.001)
     # apply tranlation, note that the receiver (mic) remains at the same height
     receiver_centered = [0, 0, 0]
     source_translated = [x2 + translation_x, y2 + translation_y, translation_z - z2]
@@ -348,18 +345,18 @@ if __name__ == "__main__":
     
     # # METU
     # download_and_extract_remotes(METU_REMOTES, dest_path)
-    # prepare_metu(source_path, dest_path_sofa)
+    # prepare_metu(source_path, sofa_path)
 
     # ## TAU
     # download_tau(dest_path)
-    # prepare_tau(source_path, dest_path_sofa)
+    # prepare_tau(source_path, sofa_path)
 
     # # ARNI
     # download_and_extract(ARNI_URL_MIC, Path(args.path) / "source_data")
     # download_and_extract(ARNI_URL_FOA, Path(args.path) / "source_data")
-    # prepare_arni(source_path, dest_path_sofa)
+    # prepare_arni(source_path, sofa_path)
 
     # MOTUS
     download_and_extract_remotes(MOTUS_REMOTES, dest_path)
-    prepare_motus(source_path, dest_path_sofa) 
+    prepare_motus(source_path, sofa_path) 
     
