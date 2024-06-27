@@ -205,26 +205,6 @@ def create_srir_sofa(
 
 
 def load_rir_pos(filepath, doas=True):
-    """
-    Loads room impulse responses (RIRs) and their corresponding source positions from a SOFA file.
-
-    This function opens a SOFA file, validates its format, and extracts the RIR data along with the sampling rate and
-    source positions. If the 'doas' flag is set to True, the source positions are normalized to unit vectors.
-
-    Args:
-        filepath (str): The path to the SOFA file containing RIR data.
-        doas (bool): A flag to indicate whether to normalize the source positions to Direction of Arrival (DoA) vectors.
-                     If True, source positions are normalized; if False, raw positions are returned.
-
-    Returns:
-        tuple: A tuple containing:
-               - rirs (numpy.ndarray): An array of room impulse responses.
-               - rirs_sr (float): The sampling rate of the impulse responses.
-               - source_pos (numpy.ndarray): An array of source positions, normalized if doas is True.
-
-    The function asserts the validity of the SOFA file and raises an assertion error if the file is not valid.
-    The source positions are normalized to unit vectors if 'doas' is True to represent directions rather than positions.
-    """
     sofa = pysofa.SOFAFile(filepath, "r")
     assert sofa.isValid()
     rirs = sofa.getVariableValue("Data.IR")

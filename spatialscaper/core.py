@@ -65,6 +65,8 @@ Event = namedtuple(
 )
 
 # Paths for room SOFA files
+
+from scripts import prepare_rirs
 __SPATIAL_SCAPER_RIRS_DIR__ = "spatialscaper_RIRs"
 __PATH_TO_AMBIENT_NOISE_FILES__ = os.path.join("source_data", "tau", "TAU-SNoise_DB")
 __ROOM_RIR_FILE__ = {
@@ -79,8 +81,10 @@ __ROOM_RIR_FILE__ = {
     "se203": "se203_{fmt}.sofa",
     "tb103": "tb103_{fmt}.sofa",
     "tc352": "tc352_{fmt}.sofa",
+    "motusroom": "motusroom_{fmt}.sofa"
 }
 
+#### FIX motusroom name if needed 
 
 class Scaper:
     def __init__(
@@ -566,19 +570,19 @@ class Scaper:
         Returns:
             tuple: A tuple containing the impulse responses, their sampling rate, and their XYZ positions.
         """
-        room_sofa_path = os.path.join(
-            self.rir_dir,
-            __SPATIAL_SCAPER_RIRS_DIR__,
-            __ROOM_RIR_FILE__[self.room].format(fmt=self.format),
-        )
+        room_sofa_path = os.path.join(self.rir_dir, __SPATIAL_SCAPER_RIRS_DIR__, f"{self.room}_{self.format}.sofa")
         all_irs, ir_sr, all_ir_xyzs = load_rir_pos(room_sofa_path, doas=False)
         ir_sr = ir_sr.data[0]
         all_irs = all_irs.data
         all_ir_xyzs = all_ir_xyzs.data
         if ir_sr != self.sr:
-            all_irs = librosa.resample(all_irs, orig_sr=ir_sr, target_sr=self.sr)
+            resampled_irs = []
+            for ir in all_irs:
+                temp_resampled = librosa.resample(ir.T, orig_sr=ir_sr, target_sr=self.sr)
+                resampled_irs.append(temp_resampled)
+            all_irs = np.array(resampled_irs)
             ir_sr = self.sr
-        return all_irs, ir_sr, all_ir_xyzs
+        return all_irs, ir_sr, all_ir_xyzs  
 
     def generate_noise(self, event):
         """

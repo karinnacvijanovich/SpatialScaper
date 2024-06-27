@@ -2,6 +2,7 @@
 datasets/
 output/
 tests/**/*.png
+output*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
